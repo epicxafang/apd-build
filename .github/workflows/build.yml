@@ -27,14 +27,15 @@ jobs:
       - name: Setup cross compilation
         run: |
           TOOLCHAIN="${NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64"
-          CC="${TOOLCHAIN}/bin/aarch64-linux-android33-clang"
+          API=28
+          CC="${TOOLCHAIN}/bin/aarch64-linux-android${API}-clang"
           AR="${TOOLCHAIN}/bin/llvm-ar"
-          CXX="${TOOLCHAIN}/bin/aarch64-linux-android33-clang++"
+          CXX="${TOOLCHAIN}/bin/aarch64-linux-android${API}-clang++"
 
           mkdir -p .cargo
           cat > .cargo/config.toml << EOF
           [target.aarch64-linux-android]
-          linker = "${TOOLCHAIN}/bin/aarch64-linux-android33-clang"
+          linker = "${TOOLCHAIN}/bin/aarch64-linux-android${API}-clang"
           rustflags = ["-C", "link-arg=-landroid"]
           EOF
 
