@@ -1,0 +1,59 @@
+name: Build apd
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install Android NDK
+        run: |
+          ANDROID_NDK_VERSION="r27c"
+          wget -q "https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-linux.zip"
+          unzip -q "android-ndk-${ANDROID_NDK_VERSION}-linux.zip"
+          echo "NDK_HOME=${PWD}/android-ndk-${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Setup cross compilation
+        run: |
+          TOOLCHAIN="${NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64"
+          CC="${TOOLCHAIN}/bin/aarch64-linux-android33-clang"
+          AR="${TOOLCHAIN}/bin/llvm-ar"
+          CXX="${TOOLCHAIN}/bin/aarch64-linux-android33-clang++"
+
+          mkdir -p .cargo
+          cat > .cargo/config.toml << EOF
+          [target.aarch64-linux-android]
+          linker = "${TOOLCHAIN}/bin/aarch64-linux-android33-clang"
+          rustflags = ["-C", "link-arg=-landroid"]
+          EOF
+
+          echo "CC=${CC}" >> "$GITHUB_ENV"
+          echo "AR=${AR}" >> "$GITHUB_ENV"
+          echo "CXX=${CXX}" >> "$GITHUB_ENV"
+          echo "TARGET_CC=${CC}" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: |
+          cargo build --release --target aarch64-linux-android \
+            --config profile.release.strip=true \
+            --config profile.release.panic='"abort"' \
+            --config profile.release.lto='"fat"' \
+            --config profile.release.codegen-units=1 \
+            --config profile.release.opt-level=3
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apd-aarch64
+          path: target/aarch64-linux-android/release/apd
