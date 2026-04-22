@@ -318,7 +318,7 @@ fn run_uid_monitor() {
 pub fn on_boot_completed(superkey: Option<String>) -> Result<()> {
     info!("on_boot_completed triggered!");
 
-    run_stage("boot-completed", superkey, false);
+    run_stage("boot-completed", superkey.clone(), false);
 
     // Apply UTS namespace spoofing if configured
     // Run at boot-completed so all system services have initialized with the real version
