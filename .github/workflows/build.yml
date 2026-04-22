@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  NDK_VERSION: "r27c"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,16 +20,23 @@ jobs:
         with:
           targets: aarch64-linux-android
 
-      - name: Install Android NDK
+      - name: Cache Android NDK
+        id: cache-ndk
+        uses: actions/cache@v4
+        with:
+          path: android-ndk-r27c
+          key: ndk-${{ env.NDK_VERSION }}
+
+      - name: Download Android NDK
+        if: steps.cache-ndk.outputs.cache-hit != 'true'
         run: |
-          ANDROID_NDK_VERSION="r27c"
-          wget -q "https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-linux.zip"
-          unzip -q "android-ndk-${ANDROID_NDK_VERSION}-linux.zip"
-          echo "NDK_HOME=${PWD}/android-ndk-${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+          wget -q "https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux.zip"
+          unzip -q "android-ndk-${NDK_VERSION}-linux.zip"
+          rm -f "android-ndk-${NDK_VERSION}-linux.zip"
 
       - name: Setup cross compilation
         run: |
-          TOOLCHAIN="${NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64"
+          TOOLCHAIN="${PWD}/android-ndk-${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64"
           API=28
           CC="${TOOLCHAIN}/bin/aarch64-linux-android${API}-clang"
           AR="${TOOLCHAIN}/bin/llvm-ar"
